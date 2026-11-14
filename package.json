@@ -1,0 +1,16 @@
+{
+  "name": "messaging-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant messaging API with idempotent provider webhooks, plus a small React console",
+  "scripts": {
+    "setup": "npm --prefix backend install && npm --prefix frontend install",
+    "migrate": "npm --prefix backend run migrate",
+    "start": "npm --prefix backend start",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "build:web": "npm --prefix frontend run build",
+    "test": "npm --prefix backend test",
+    "demo": "bash scripts/demo.sh"
+  }
+}
