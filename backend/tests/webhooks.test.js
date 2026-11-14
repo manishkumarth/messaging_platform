@@ -150,7 +150,10 @@ test('ignored events are still persisted in the ledger for audit', async () => {
   await sendEvent(api, m.id, 'READ', '2026-10-16T08:10:00.000Z', 'evt-r');
   await sendEvent(api, m.id, 'SENT', '2026-10-16T08:00:00.000Z', 'evt-s');
 
-  const rows = db.prepare('SELECT event_id, outcome, status_before, status_after FROM message_events ORDER BY received_at, rowid').all();
+  const rows = db
+    .prepare('SELECT event_id, outcome, status_before, status_after FROM message_events ORDER BY rowid')
+    .all()
+    .map((r) => ({ ...r })); // node:sqlite rows have a null prototype
   assert.deepEqual(rows, [
     { event_id: 'evt-r', outcome: 'APPLIED', status_before: 'QUEUED', status_after: 'READ' },
     { event_id: 'evt-s', outcome: 'IGNORED_STALE', status_before: 'READ', status_after: 'READ' },

@@ -4,14 +4,16 @@ A REST API for a simplified **multi-tenant messaging platform**. Clients create 
 provider reports delivery progress through a **webhook** that is safe against retries, duplicates and
 out-of-order delivery. Includes a small React console for exploring it.
 
-- **Backend:** Node.js (ESM) + Express 5 + SQLite (`better-sqlite3`), SQL migrations, no ORM
+- **Backend:** Node.js (ESM) + Express 5 + SQLite via Node's built-in `node:sqlite`, SQL migrations, no ORM
 - **Frontend:** React 19 + Vite (create messages, browse history, simulate provider webhooks)
 - **Tests:** Node's built-in test runner + supertest (49 tests)
 - Design note (idempotency, transitions, isolation, production changes): [`docs/DESIGN.md`](docs/DESIGN.md)
 
 ## Quick start
 
-Requires **Node.js 20+** (developed on 22) and npm.
+Requires **Node.js 22.13 or newer** and npm (`.nvmrc` is provided: `nvm use`). The database driver is Node's
+built-in `node:sqlite`, so there is no native module to compile and `npm install` stays reproducible. Node
+prints a one-line `ExperimentalWarning: SQLite is an experimental feature` on startup; that is expected.
 
 ```bash
 cp backend/.env.example backend/.env   # placeholder values; edit WEBHOOK_SECRET if you like
@@ -26,8 +28,8 @@ npm run demo                           # curl walkthrough against the running AP
 ```
 
 `npm start` also applies pending migrations on boot, so `npm run migrate` is optional but kept as an
-explicit, reproducible step. `better-sqlite3` ships prebuilt binaries for common platforms; on an unusual
-platform it compiles from source and needs a C++ toolchain.
+explicit, reproducible step. `backend/.npmrc` sets `engine-strict`, so installing on an older Node fails
+immediately with a clear message instead of a cryptic runtime error.
 
 ### React console
 
@@ -284,6 +286,9 @@ WEBHOOK_SECRET=replace-with-a-long-random-string npm run demo
 
 - **SQLite = one writer.** Fine for this scope (WAL mode, `busy_timeout`); not horizontally scalable.
   Single-process only: running several API instances against one file is not supported.
+- **`node:sqlite` is still flagged experimental** in Node 22. I chose it over a native addon for zero-compile
+  installs; the data-access surface is small (a handful of prepared statements), so swapping in
+  `better-sqlite3` or PostgreSQL would be a contained change.
 - **Synchronous processing, no queue.** Webhooks are applied inside the request, which is the simplest way
   to guarantee "persisted before acknowledged". There is no retry/backoff or dead-letter worker; a failure
   returns a 5xx and relies on the provider to retry (safe, because processing is idempotent).

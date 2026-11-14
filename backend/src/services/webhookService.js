@@ -1,5 +1,6 @@
 import { AppError } from '../errors.js';
 import { decide, DECISION } from '../statusMachine.js';
+import { immediateTransaction } from '../db/transaction.js';
 
 // Whitelisted column per status (never derived from user input).
 const TIMESTAMP_COLUMN = {
@@ -53,7 +54,7 @@ export function createWebhookService(db, { logger, metrics }) {
    * for one message) are serialised and cannot interleave their read-decide-write steps.
    * The HTTP 200 is only sent after COMMIT, i.e. after the event is durably persisted.
    */
-  const processTx = db.transaction((evt) => {
+  const processTx = immediateTransaction(db, (evt) => {
     const existing = getEvent.get(evt.eventId);
     if (existing) {
       const sameEvent =
@@ -113,7 +114,7 @@ export function createWebhookService(db, { logger, metrics }) {
 
   return {
     process(evt, ctx = {}) {
-      const result = processTx.immediate(evt);
+      const result = processTx(evt);
       const outcomeLabel = result.duplicate ? 'DUPLICATE' : result.outcome;
       metrics?.inc('webhook_events_total', { outcome: outcomeLabel });
       logger?.info('webhook event processed', {

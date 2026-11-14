@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { immediateTransaction } from './transaction.js';
 
 const DEFAULT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../migrations');
 
@@ -25,7 +26,7 @@ export function runMigrations(db, dir = DEFAULT_DIR) {
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(dir, file), 'utf8');
-    db.transaction(() => {
+    immediateTransaction(db, () => {
       db.exec(sql);
       db.prepare('INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)').run(
         file,
